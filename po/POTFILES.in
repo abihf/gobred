@@ -1,0 +1,14 @@
+# List of source files containing translatable strings.
+
+gobred/extension-gtk.c
+gobred/extension-wpe.c
+gobred/main-gtk.c
+gobred/main-wpe.c
+
+libgobred/gobred-bridge.c
+libgobred/gobred-event.c
+libgobred/gobred-js-utils.c
+libgobred/gobred-log.c
+libgobred/gobred-method.c
+libgobred/gobred-module.c
+libgobred/gobred-value.c
