@@ -17,9 +17,9 @@ AM_CFLAGS =\
 	-g
 
 
-lib_LTLIBRARIES = libgobred.la
+lib_LTLIBRARIES = libgobred-@GOBRED_PORT@.la
 
-libgobred_la_SOURCES = \
+libgobred_@GOBRED_PORT@_la_SOURCES = \
 	gobred-bridge.c \
 	gobred-event.c \
 	gobred-js-utils.c \
@@ -27,8 +27,8 @@ libgobred_la_SOURCES = \
 	gobred-module.c \
 	gobred-method.c \
 	gobred-value.c
-libgobred_la_LDFLAGS = -rdynamic -version-info 1:0
-libgobred_la_LIBADD = $(LIBGOBRED_LIBS)
+libgobred_@GOBRED_PORT@_la_LDFLAGS = -rdynamic -version-info 1:0
+libgobred_@GOBRED_PORT@_la_LIBADD = $(LIBGOBRED_LIBS)
 
 gobredheaders_HEADERS = \
 	gobred.h \

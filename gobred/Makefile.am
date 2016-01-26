@@ -37,7 +37,7 @@ GobredWebkitExtension_la_CPPFLAGS = $(AM_CPPFLAGS) \
 GobredWebkitExtension_la_LDFLAGS = -module -avoid-version
 GobredWebkitExtension_la_LIBADD = $(WEBKIT_EXTENSION_LIBS) \
 				$(JSCORE_LIBS) \
-				../libgobred/libgobred.la
+				../libgobred/libgobred-@GOBRED_PORT@.la
 endif
 
 if GOBRED_PORT_WPE
@@ -48,17 +48,17 @@ gobred_wpe_CPPFLAGS = \
 	$(WEBKIT_CFLAGS)
 gobred_wpe_LDADD = $(WEBKIT_LIBS)
 
-webkitextdir = $(pkglibdir)/webkit
-webkitext_LTLIBRARIES =  GobredWebkitExtension.la
-GobredWebkitExtension_la_SOURCES = extension-wpe.c
-GobredWebkitExtension_la_CPPFLAGS = $(AM_CPPFLAGS) \
+#webkitextdir = $(pkglibdir)/webkit
+pkglib_LTLIBRARIES =  WPEInjectedBundle.la
+WPEInjectedBundle_la_SOURCES = extension-wpe.c
+WPEInjectedBundle_la_CPPFLAGS = $(AM_CPPFLAGS) \
 				$(WEBKIT_EXTENSION_CFLAGS) \
 				$(JSCORE_CFLAGS) \
 				$(LIBGOBRED_CFLAGS)
-GobredWebkitExtension_la_LDFLAGS = -module -avoid-version -rdynamic
-GobredWebkitExtension_la_LIBADD = $(WEBKIT_EXTENSION_LIBS) \
+WPEInjectedBundle_la_LDFLAGS = -module -avoid-version -rdynamic
+WPEInjectedBundle_la_LIBADD = $(WEBKIT_EXTENSION_LIBS) \
 				$(JSCORE_LIBS) \
-				../libgobred/libgobred.la
+				../libgobred/libgobred-@GOBRED_PORT@.la
 endif
 
 -include $(top_srcdir)/git.mk

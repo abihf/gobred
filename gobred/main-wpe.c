@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     GMainLoop* loop = g_main_loop_new(NULL, FALSE);
 
     WKContextConfigurationRef contextConfiguration = WKContextConfigurationCreate();
-    WKStringRef injectedBundlePath = WKStringCreateWithUTF8CString(PACKAGE_LIB_DIR "/webkit/GobredWebkitExtension.so");
+    WKStringRef injectedBundlePath = WKStringCreateWithUTF8CString(PACKAGE_LIB_DIR "/WPEInjectedBundle.so");
     WKContextConfigurationSetInjectedBundlePath(contextConfiguration, injectedBundlePath);
     WKRelease(injectedBundlePath);
 
