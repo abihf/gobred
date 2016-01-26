@@ -47,7 +47,7 @@ gobred_module_load_all ()
 {
   GFile *dir, *file = NULL;
   GFileEnumerator *enumerator;
-  GFileInfo *info = NULL;
+  //GFileInfo *info = NULL;
   GError *error = NULL;
   GobredModule *module;
 
@@ -82,6 +82,8 @@ gobred_module_load_all ()
       break;
     }
     gchar *file_name = g_file_get_path(file);
+    if (!g_str_has_suffix(file_name, "." G_MODULE_SUFFIX))
+      continue;
     gmodule = g_module_open (file_name, G_MODULE_BIND_LAZY);
     if (gmodule != NULL) {
       //GobredModuleRegisterFunc register_func;
@@ -102,7 +104,7 @@ gobred_module_load_all ()
     }
     g_free(file_name);
     file = NULL;
-    info = NULL;
+    //info = NULL;
   }
   g_object_unref(dir);
 
