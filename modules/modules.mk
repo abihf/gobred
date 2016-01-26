@@ -7,7 +7,7 @@ AM_CFLAGS = \
 	-std=gnu99 \
 	-g
 AM_LDFLAGS = -module  -avoid-version
-LIBADD = $(LIBGOBRED_LIBS) $(top_builddir)/libgobred/libgobred.la
+LIBADD = $(LIBGOBRED_LIBS)
 
 EXTRA_DIST = $(module_DATA)
 
