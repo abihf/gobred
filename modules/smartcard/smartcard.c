@@ -263,28 +263,29 @@ void smartcard_hello()
 
 }
 
-static GobredMethodDefinition methods[] = {
+static GobredMethodDefinitionV0 methods[] = {
   {.name = "send", .handler.simple = _send_apdu, .threaded = TRUE},
   {.name = "getReaders", .handler.simple = _get_readers},
   {NULL}
 };
 
-static GobredEventDefinition events[] = {
+static GobredEventDefinitionV0 events[] = {
   {"card-present"},
   {"card-removed"},
   {NULL}
 };
 
-static GobredModuleDefinition definition = {
-  .name = "smartcard",
+static GobredModuleDefinitionV0 definition = {
+  .base.version = 0,
+  .base.name = "smartcard",
   .methods = methods,
   .events = events,
   .init = _init,
   .free = _free
 };
 
-GobredModuleDefinition *
+GobredModuleDefinitionBase *
 gobred_module_register ()
 {
-  return &definition;
+  return &definition.base;
 }
