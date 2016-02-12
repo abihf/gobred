@@ -18,7 +18,7 @@
  */
 
 GOBRED_INTERNAL void
-gobred_event_prepare (const GobredModuleDefinition *modules[]);
+gobred_event_prepare (const GobredModuleDefinitionBase *modules[]);
 
 GOBRED_INTERNAL JSValueRef
 gobred_event_handle_add_listener (JSContextRef ctx,

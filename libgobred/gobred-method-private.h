@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
 GOBRED_INTERNAL JSValueRef
 gobred_method_handle_call (JSContextRef ctx,
 			   JSObjectRef function,
@@ -24,4 +25,9 @@ gobred_method_handle_call (JSContextRef ctx,
 			   size_t argc,
 			   const JSValueRef js_args[],
 			   JSValueRef* exception);
+*/
 
+JSObjectRef
+gobred_method_create_js_func_v0 (JSContextRef ctx,
+				 GobredMethodDefinitionV0 *definition,
+				 JSStringRef *out_name);

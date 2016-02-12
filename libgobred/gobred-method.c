@@ -94,20 +94,17 @@ gobred_method_handle_call_simple (GobredMethodSimpleHandler handler,
   return JSValueMakeUndefined (ctx);
 }
 
-JSValueRef
-gobred_method_handle_call (JSContextRef ctx,
+static JSValueRef
+gobred_method_handle_call_v0 (JSContextRef ctx,
 			   JSObjectRef function,
 			   JSObjectRef this_object,
 			   size_t argc,
 			   const JSValueRef js_args[],
 			   JSValueRef* exception)
 {
-  //g_autofree gchar *name_space = js_value_get_string(ctx, js_args[0]);
-  //g_autofree gchar *method_name = js_value_get_string(ctx, js_args[1]);
 
-  const GobredMethodDefinition *method =
-      (GobredMethodDefinition *) JSObjectGetPrivate (function);
-  //gobred_method_find (name_space, method_name);
+  const GobredMethodDefinitionV0 *method =
+      (GobredMethodDefinitionV0 *) JSObjectGetPrivate (function);
 
   switch (method->type) {
   case GOBRED_METHOD_TYPE_SIMPLE:
@@ -124,6 +121,22 @@ gobred_method_handle_call (JSContextRef ctx,
   default:
     return JSValueMakeUndefined (ctx);
   }
+}
+
+static JSClassDefinition _method_class_definition_v0 =
+  { .className = "GobredMethod", .callAsFunction = gobred_method_handle_call_v0 };
+static JSClassRef _method_class_v0 = NULL;
+
+JSObjectRef
+gobred_method_create_js_func_v0 (JSContextRef ctx,
+				 GobredMethodDefinitionV0 *definition,
+				 JSStringRef *out_name)
+{
+  JSStringRef name = JSStringCreateWithUTF8CString(definition->name);
+  *out_name = name;
+  if (_method_class_v0 == NULL)
+    _method_class_v0 = JSClassCreate (&_method_class_definition_v0);
+  return JSObjectMake(ctx, _method_class_v0, definition);
 }
 
 void

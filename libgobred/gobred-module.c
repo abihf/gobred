@@ -35,12 +35,7 @@ enum {
 static gboolean initialized = FALSE;
 static GList *modules = NULL;
 
-static const GobredModuleDefinition **module_definitions;
-
-typedef struct  {
-  const GobredModuleDefinition *definition;
-  GModule *gmodule;
-} GobredModule;
+static const GobredModuleDefinitionBase **module_definitions;
 
 static void
 gobred_module_load_all ()
@@ -78,7 +73,6 @@ gobred_module_load_all ()
   int module_number = 0;
   while (g_file_enumerator_iterate (enumerator, NULL, &file, NULL, &error)) {
     if (file == NULL) {
-      g_print("KOK NULL?\n");
       break;
     }
     gchar *file_name = g_file_get_path(file);
@@ -90,7 +84,7 @@ gobred_module_load_all ()
       gpointer symbol = NULL;
       if (g_module_symbol(gmodule, "gobred_module_register", &symbol)) {
         GobredModuleRegisterFunc register_func = (GobredModuleRegisterFunc)symbol;
-        const GobredModuleDefinition *definition = register_func();
+        const GobredModuleDefinitionBase *definition = register_func();
         module = g_slice_new (GobredModule);
         module->definition = definition;
         module->gmodule = gmodule;
@@ -109,16 +103,60 @@ gobred_module_load_all ()
   g_object_unref(dir);
 
 
-  module_definitions = g_new(const GobredModuleDefinition*, module_number+1);
+  module_definitions = g_new(const GobredModuleDefinitionBase*, module_number+1);
   int i = 0;
   for (GList *item = modules->next; item; item = item->next) {
     module = (GobredModule *)item->data;
     module_definitions[i] = module->definition;
-    module->definition->init();
+
+    switch (module->definition->version) {
+    case GOBRED_MODULE_DEFINITION_VERSION_0:
+      ((GobredModuleDefinitionV0*)module->definition)->init();
+      break;
+
+    default:
+      // module not supported
+      break;
+    }
     i++;
   }
   module_definitions[i] = NULL;
 }
+
+
+
+static void
+_js_object_finalize (JSObjectRef object)
+{
+  GobredModuleData *data = gobred_module_data_from_js (object);
+  g_debug ("finalizing %d", data!=NULL);
+  if (data) {
+    data->active = false;
+    gobred_module_data_unref (data);
+  }
+}
+
+static JSStaticFunction _js_object_functions[] = {
+  {
+    .name = "addEventListener",
+    .callAsFunction = gobred_event_handle_add_listener,
+    .attributes = kJSPropertyAttributeReadOnly
+  },
+  {
+    .name = "removeEventListener",
+    .callAsFunction = gobred_event_handle_remove_listener,
+    .attributes = kJSPropertyAttributeReadOnly
+  },
+  { NULL }
+};
+
+static JSClassDefinition _js_object_class_definition = {
+  .className = "GobredModule",
+  .finalize = _js_object_finalize,
+  .staticFunctions = _js_object_functions
+};
+
+
 void
 gobred_module_init_all ()
 {
@@ -129,13 +167,66 @@ gobred_module_init_all ()
   initialized = true;
 }
 
+static JSObjectRef
+_create_js_object_v0 (JSContextRef ctx, const GobredModuleDefinitionV0 *definition)
+{
+  static JSClassRef js_class = NULL;
+  if (js_class == NULL)
+    js_class = JSClassCreate (&_js_object_class_definition);
+
+  JSObjectRef module_object = JSObjectMake(ctx, js_class, NULL);
+  GobredMethodDefinitionV0 *method;
+  for (method = definition->methods; method->name; method++) {
+    JSStringRef method_name = NULL;
+    JSObjectRef fun = gobred_method_create_js_func_v0(ctx, method, &method_name);
+    if (fun) {
+      JSObjectSetProperty (ctx, module_object, method_name, fun, 0, NULL);
+      JSValueUnprotect (ctx, fun);
+    }
+    if (method_name)
+      JSStringRelease (method_name);
+  }
+  return module_object;
+}
+
+
+JSObjectRef
+gobred_module_create_js_object (JSContextRef ctx, const GobredModule *module)
+{
+  const GobredModuleDefinitionBase *definition = module->definition;
+  JSObjectRef module_object;
+  switch (definition->version) {
+  case GOBRED_MODULE_DEFINITION_VERSION_0:
+    module_object = _create_js_object_v0 (ctx, (GobredModuleDefinitionV0*)definition);
+    break;
+  default:
+    module_object =  NULL;
+  }
+
+  if (module_object) {
+    GobredModuleData *data = gobred_module_data_new ();
+    data->active = true;
+    data->definition = definition;
+    JSObjectSetPrivate (module_object, data);
+  }
+  return module_object;
+}
+
 void
 gobred_module_free_all ()
 {
   GobredModule *module;
   for (GList *item = modules->next; item; item = item->next) {
     module = (GobredModule *)item->data;
-    module->definition->free();
+    switch (module->definition->version) {
+    case GOBRED_MODULE_DEFINITION_VERSION_0:
+      ((GobredModuleDefinitionV0*)module->definition)->free();
+      break;
+
+    default:
+      // module not supported
+      break;
+    }
     g_module_close(module->gmodule);
     g_slice_free (GobredModule, module);
   }
@@ -144,12 +235,24 @@ gobred_module_free_all ()
 
 }
 
-const GobredModuleDefinition **
-gobred_module_get_all ()
+const GobredModuleDefinitionBase **
+gobred_module_get_all_definitions ()
 {
   return module_definitions;
 }
 
+const GList *
+gobred_module_get_all()
+{
+  return modules;
+}
+
+
+/**
+ * @SECTION: GobredModuleData
+ *
+ * This struct hold private data for each module javascript object.
+ */
 
 GobredModuleData *
 gobred_module_data_new ()
@@ -170,7 +273,6 @@ void
 gobred_module_data_unref (GobredModuleData *data)
 {
   if (g_atomic_int_dec_and_test (&data->ref_count)) {
-    g_print("freed %s\n", data->definition->name);
     g_slice_free (GobredModuleData, data);
   }
 }

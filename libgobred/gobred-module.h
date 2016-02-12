@@ -22,21 +22,28 @@
 #ifndef _GOBRED_MODULES_H_
 #define _GOBRED_MODULES_H_
 
-#define GOBRED_MODULE_MAX_NAME  128
-
+typedef enum {
+	GOBRED_MODULE_DEFINITION_VERSION_0 = 0
+} GobredModuleDefinitionVersion;
 
 typedef struct
 {
+  GobredModuleDefinitionVersion version;
   gchar *name;
-  GobredMethodDefinition *methods;
-  GobredEventDefinition *events;
+} GobredModuleDefinitionBase;
+
+typedef struct
+{
+  GobredModuleDefinitionBase base;
+  GobredMethodDefinitionV0 *methods;
+  GobredEventDefinitionV0 *events;
 
   void (*init) (void);
   void (*free) (void);
 
-} GobredModuleDefinition;
+} GobredModuleDefinitionV0;
 
-typedef const GobredModuleDefinition *(*GobredModuleRegisterFunc)();
+typedef const GobredModuleDefinitionBase *(*GobredModuleRegisterFunc)();
 
 
 #endif
