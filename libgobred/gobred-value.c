@@ -25,6 +25,18 @@
 
 // G_DEFINE_BOXED_TYPE(GobredValue, gobred_value, gobred_value_ref, gobred_value_unref);
 
+GobredValue _gobred_boolean_true = {
+  .type = GOBRED_VALUE_TYPE_BOOLEAN,
+  .data.v_bool = TRUE,
+  .constant = TRUE
+};
+GobredValue _gobred_boolean_false = {
+  .type = GOBRED_VALUE_TYPE_BOOLEAN,
+  .data.v_bool = FALSE,
+  .constant = TRUE
+};
+
+
 static GobredValue *
 gobred_value_new (GobredValueType type)
 {
@@ -66,7 +78,8 @@ GobredValue *
 gobred_value_ref (GobredValue *value)
 {
   g_return_val_if_fail (value != NULL, NULL);
-  g_atomic_int_inc(&value->ref);
+  if (!value->constant)
+    g_atomic_int_inc(&value->ref);
   return value;
 }
 
@@ -92,7 +105,7 @@ void
 gobred_value_unref (GobredValue *value)
 {
   g_return_if_fail (value != NULL);
-  if (g_atomic_int_dec_and_test(&value->ref)) {
+  if (!value->constant && g_atomic_int_dec_and_test(&value->ref)) {
     gobred_value_free (value);
   }
 }

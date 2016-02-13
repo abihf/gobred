@@ -26,6 +26,14 @@ typedef struct _GobredValue GobredValue;
 typedef GobredValue GobredArray;
 typedef GobredValue GobredDict;
 
+
+extern GobredValue _gobred_boolean_true;
+#define GOBRED_BOOLEAN_TRUE &_gobred_boolean_true
+
+extern GobredValue _gobred_boolean_false;
+#define GOBRED_BOOLEAN_FALSE &_gobred_boolean_false
+
+
 typedef enum {
   GOBRED_VALUE_TYPE_NULL = 0x1,
   GOBRED_VALUE_TYPE_BOOLEAN = 0x2,
@@ -51,6 +59,7 @@ struct _GobredValue {
 
   gint ref;
   gint floating;
+  gboolean constant;
 };
 
 
@@ -290,7 +299,8 @@ gobred_dict_set_boolean (GobredDict *dict,
 		   const gchar *prop_name,
 		   gboolean value)
 {
-  gobred_dict_set(dict, prop_name, gobred_value_new_boolean (gboolean b));
+  gobred_dict_set(dict, prop_name,
+		  value ? GOBRED_BOOLEAN_TRUE : GOBRED_BOOLEAN_FALSE);
 }
 
 
