@@ -100,6 +100,7 @@ gobred_value_unref (GobredValue *value)
 GobredValueType
 gobred_value_get_value_type (GobredValue *value)
 {
+  g_return_val_if_fail (value != NULL, GOBRED_VALUE_TYPE_UNKNOWN);
   return value->type;
 }
 
@@ -126,7 +127,7 @@ gobred_value_free (GobredValue *value)
 }
 
 static JSValueRef
-gobred_value_array_to_js (GobredValue *value, JSContextRef ctx)
+gobred_value_array_to_js (GobredArray *value, JSContextRef ctx)
 {
   int i, len = value->data.v_array->len;
   gpointer *item = value->data.v_array->pdata;
@@ -142,7 +143,7 @@ gobred_value_array_to_js (GobredValue *value, JSContextRef ctx)
 }
 
 static JSValueRef
-gobred_value_dict_to_js (GobredValue *value, JSContextRef ctx)
+gobred_value_dict_to_js (GobredDict *value, JSContextRef ctx)
 {
   GHashTableIter iter;
   const gchar *name;
@@ -193,10 +194,10 @@ gobred_value_new_from_js_object (JSContextRef ctx, JSObjectRef js_object)
     JSValueRef js_len = JSObjectGetProperty (ctx, js_object, js_len_name, NULL);
     gint len = (gint) JSValueToNumber (ctx, js_len, NULL);
     JSStringRelease (js_len_name);
-    GobredValue *array = gobred_value_new_array (len, 0);
+    GobredArray *array = gobred_array_new (len, NULL);
     for (int i = 0; i < len; i++) {
       JSValueRef js_item = JSObjectGetPropertyAtIndex (ctx, js_object, i, NULL);
-      gobred_value_add_item (array, gobred_value_new_from_js (ctx, js_item));
+      gobred_array_add (array, gobred_value_new_from_js (ctx, js_item));
     }
     return array;
   }
@@ -205,7 +206,7 @@ gobred_value_new_from_js_object (JSContextRef ctx, JSObjectRef js_object)
     size_t len = JSPropertyNameArrayGetCount (props);
     int i;
 
-    GobredValue *value = gobred_value_new_dict (NULL);
+    GobredDict *dict = gobred_dict_new (NULL);
     for (i = 0; i < len; i++) {
       JSStringRef js_prop_name = JSPropertyNameArrayGetNameAtIndex (props, i);
       JSValueRef js_prop_value = JSObjectGetProperty (ctx, js_object,
@@ -213,13 +214,13 @@ gobred_value_new_from_js_object (JSContextRef ctx, JSObjectRef js_object)
 						      NULL);
       gchar *prop_name = js_string_to_native (ctx, js_prop_name);
       GobredValue *prop_value = gobred_value_new_from_js (ctx, js_prop_value);
-      gobred_value_set_property (value, prop_name, prop_value);
+      gobred_dict_set (dict, prop_name, prop_value);
 
       g_free (prop_name);
       JSStringRelease (js_prop_name);
     }
     JSPropertyNameArrayRelease (props);
-    return value;
+    return dict;
   }
   return NULL;
 }
@@ -314,8 +315,8 @@ gobred_value_take_string (GobredValue *value)
 
 //////////////////////// ARRAY
 
-GobredValue *
-gobred_value_new_array (gsize size, ...)
+GobredArray *
+gobred_array_new (gsize size, ...)
 {
   GobredValue *value = gobred_value_new (GOBRED_VALUE_TYPE_ARRAY);
   if (size > 0)
@@ -329,51 +330,53 @@ gobred_value_new_array (gsize size, ...)
   va_start(args, size);
   GobredValue *item;
   while ((item = gobred_value_newv (&args)) != NULL) {
-    gobred_value_add_item (value, item);
+    gobred_array_add (value, item);
   }
   va_end(args);
   return value;
 }
 
 gint
-gobred_value_get_length (GobredValue *value)
+gobred_array_get_length (GobredArray *array)
 {
-  g_return_val_if_fail(gobred_value_is_array (value), 0);
-  return value->data.v_array->len;
+  g_return_val_if_fail(gobred_value_is_array (array), 0);
+  return array->data.v_array->len;
 }
 
 void
-gobred_value_add_item (GobredValue *value, GobredValue *item)
+gobred_array_add (GobredArray *array, GobredValue *item)
 {
-  g_return_if_fail(gobred_value_is_array (value));
-  g_ptr_array_add (value->data.v_array, gobred_value_ref_sink (item));
+  g_return_if_fail(gobred_value_is_array (array));
+  g_ptr_array_add (array->data.v_array, gobred_value_ref_sink (item));
 }
 
 void
-gobred_value_set_item (GobredValue *value, gint index, GobredValue *item)
+gobred_array_set (GobredArray *array, gint index, GobredValue *item)
 {
-  g_return_if_fail(gobred_value_is_array (value));
-  GPtrArray *array = value->data.v_array;
-  if (array->len <= index)
-    g_ptr_array_set_size (array, index + 1);
-  if (array->pdata[index])
-    gobred_value_unref (array->pdata[index]);
-  array->pdata[index] = gobred_value_ref_sink (item);
+  g_return_if_fail(gobred_value_is_array (array));
+  GPtrArray *container = array->data.v_array;
+  if (container->len <= index)
+    g_ptr_array_set_size (container, index + 1);
+  if (container->pdata[index])
+    gobred_value_unref (container->pdata[index]);
+  container->pdata[index] = gobred_value_ref_sink (item);
 }
 
 GobredValue *
-gobred_value_get_item (GobredValue *value, gint index)
+gobred_array_get (GobredArray *array, gint index)
 {
-  g_return_val_if_fail(gobred_value_is_array (value), NULL);
-  GPtrArray *array = value->data.v_array;
-  if (index < array->len)
-    return (GobredValue *) array->pdata[index];
+  g_return_val_if_fail(gobred_value_is_array (array), NULL);
+  GPtrArray *container = array->data.v_array;
+  if (index < container->len)
+    return (GobredValue *) container->pdata[index];
   else
     return NULL;
 }
 
-GobredValue *
-gobred_value_new_dict (const gchar *name, ...)
+
+
+GobredDict *
+gobred_dict_new (const gchar *name, ...)
 {
 
   GobredValue *value = gobred_value_new (GOBRED_VALUE_TYPE_DICT);
@@ -388,7 +391,7 @@ gobred_value_new_dict (const gchar *name, ...)
     GobredValue *prop_value = gobred_value_newv (&args);
     //va_arg(args, GobredValueType);
     //va_arg(args, const gchar *);
-    gobred_value_set_property (value, prop_name, prop_value);
+    gobred_dict_set (value, prop_name, prop_value);
   }
   va_end(args);
 
@@ -396,19 +399,19 @@ gobred_value_new_dict (const gchar *name, ...)
 }
 
 void
-gobred_value_set_property (GobredValue *value,
+gobred_dict_set (GobredDict *dict,
 			   const gchar *prop_name,
 			   GobredValue *prop_value)
 {
-  g_return_if_fail(gobred_value_is_dict (value));
-  g_hash_table_insert (value->data.v_dict, g_strdup (prop_name),
+  g_return_if_fail(gobred_value_is_dict (dict));
+  g_hash_table_insert (dict->data.v_dict, g_strdup (prop_name),
 		       gobred_value_ref_sink (prop_value));
 }
 
-const GobredValue *
-gobred_value_get_property (GobredValue *value, const gchar *prop_name)
+GobredValue *
+gobred_dict_get (GobredDict *dict, const gchar *prop_name)
 {
-  g_return_val_if_fail(gobred_value_is_dict (value), NULL);
-  return g_hash_table_lookup (value->data.v_dict, prop_name);
+  g_return_val_if_fail(gobred_value_is_dict (dict), NULL);
+  return g_hash_table_lookup (dict->data.v_dict, prop_name);
 }
 
