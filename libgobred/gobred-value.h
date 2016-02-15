@@ -282,6 +282,8 @@ gobred_dict_take_string (GobredDict *dict,
     return default_value;
 }
 
+#define gobred_dict_get_array gobred_dict_get
+#define gobred_dict_get_dict gobred_dict_get
 
 void
 gobred_dict_set (GobredDict *dict,
@@ -302,6 +304,37 @@ gobred_dict_set_boolean (GobredDict *dict,
   gobred_dict_set(dict, prop_name,
 		  value ? GOBRED_BOOLEAN_TRUE : GOBRED_BOOLEAN_FALSE);
 }
+
+static inline void
+gobred_dict_set_number (GobredDict *dict,
+		   const gchar *prop_name,
+		   gdouble value)
+{
+  gobred_dict_set(dict, prop_name,
+		  gobred_value_new_number (value));
+}
+
+
+static inline void
+gobred_dict_set_string (GobredDict *dict,
+		   const gchar *prop_name,
+		   const gchar *value)
+{
+  gobred_dict_set(dict, prop_name,
+		  gobred_value_new_string (value));
+}
+
+static inline void
+gobred_dict_set_string_take (GobredDict *dict,
+		   const gchar *prop_name,
+		   gchar *value)
+{
+  gobred_dict_set(dict, prop_name,
+		  gobred_value_new_take_string (value));
+}
+
+#define gobred_dict_set_array gobred_dict_set
+#define gobred_dict_set_dict gobred_dict_set
 
 
 #endif
