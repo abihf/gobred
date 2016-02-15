@@ -71,9 +71,9 @@ gobred_method_handle_call_simple (GobredMethodSimpleHandler handler,
   // TODO: call JSObjectIsFunction(ctx, js_func) and throw
 
   int real_argc = argc > 0 ? argc - 1 : 0;
-  GobredValue *params = gobred_value_new_array (real_argc, 0);
+  GobredArray *params = gobred_array_new (real_argc, 0);
   for (i = 0; i < real_argc; i++) {
-    gobred_value_add_item (params, gobred_value_new_from_js (ctx, js_args[i]));
+    gobred_array_add (params, gobred_value_new_from_js (ctx, js_args[i]));
   }
 
   if (threaded) {
@@ -155,7 +155,6 @@ gobred_method_callback_return (GobredMethodCallBack **pcb, GobredValue *value)
     params[1] = gobred_value_to_js (value, cb->ctx);
     param_count++;
     gobred_value_unref (value);
-    g_print("ada return nya\n");
   }
 
   // JavaScriptCore API is thread safe, so we can safely do it
