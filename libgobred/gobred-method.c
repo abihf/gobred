@@ -64,7 +64,7 @@ gobred_method_handle_call_simple (GobredMethodSimpleHandler handler,
     if (JSObjectIsFunction (ctx, js_func)) {
       cb = g_slice_new(GobredMethodCallBack);
       cb->js_func = js_func;
-      cb->ctx = ctx;
+      cb->ctx = JSContextGetGlobalContext(ctx);
     }
   }
 
