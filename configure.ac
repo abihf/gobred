@@ -97,7 +97,7 @@ AC_ARG_ENABLE(fingerprint-module,
 			  [want_fingerprint_module=$enableval],[want_fingerprint_module="yes"])
 
 if test x"$want_fingerprint_module" = x"yes" ; then
-	PKG_CHECK_MODULES(LIBFPRINT, [libfprint])
+	PKG_CHECK_MODULES(LIBFPRINT, [libfprint gdk-pixbuf-2.0])
 fi
 
 AM_CONDITIONAL(BUILD_FINGERPRINT_MODULE, test "x$want_fingerprint_module" = "xyes")
@@ -112,6 +112,7 @@ Makefile
 libgobred/Makefile
 gobred/Makefile
 modules/Makefile
+modules/fingerprint/Makefile
 modules/smartcard/Makefile
 po/Makefile.in
 ])
