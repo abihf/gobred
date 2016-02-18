@@ -37,7 +37,7 @@ typedef struct _GobredMethodCallBack GobredMethodCallBack;
 typedef struct _GobredMethodDefinitionV0 GobredMethodDefinitionV0;
 
 typedef void
-(*GobredMethodSimpleHandler) (GobredValue *params, GobredMethodCallBack *cb);
+(*GobredMethodSimpleHandler) (GobredArray *params, GobredMethodCallBack *cb);
 
 typedef JSValueRef
 (*GobredMethodNativeHander) (JSContextRef ctx,
