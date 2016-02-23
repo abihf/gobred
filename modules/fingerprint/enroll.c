@@ -52,8 +52,7 @@ enroll_stage_cb (struct fp_dev *dev,
   gchar *error = NULL;
   gchar *status = NULL;
 
-  if (dev != devices[0].dev)
-    g_error("kok bisa beda???");
+  g_print("enroll result: %d\n", result);
 
   switch (result) {
 	case FP_ENROLL_COMPLETE:
@@ -152,12 +151,12 @@ fingerprint_handle_enroll (GobredArray *params, GobredMethodCallBack *cb)
 
   if (devices[index].dev) {
     if (fp_async_enroll_start (devices[index].dev, enroll_stage_cb, enroll_data) < 0) {
-      gobred_method_callback_throw_error (&cb, "can not enroll");
+      gobred_method_callback_throw_error (&enroll_data->cb, "can not enroll");
       goto clean;
     }
   } else {
     if (fp_async_dev_open (devices[index].ddev, dev_opened_for_enroll_cb, enroll_data)) {
-      gobred_method_callback_throw_error (&cb, "can not open device");
+      gobred_method_callback_throw_error (&enroll_data->cb, "can not open device");
       goto clean;
     }
   }
