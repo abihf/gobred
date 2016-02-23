@@ -4,7 +4,9 @@ module_LTLIBRARIES = GobredFingerPrint.la
 
 GobredFingerPrint_la_SOURCES = \
 	fingerprint.c \
-	poll.c
+	poll.c \
+	enroll.c \
+	util.c
 
 # module_DATA = hello.module
 GobredFingerPrint_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBFPRINT_CFLAGS)
