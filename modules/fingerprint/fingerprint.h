@@ -25,7 +25,7 @@ void
 fingerprint_handle_enroll (GobredValue *params, GobredMethodCallBack *cb);
 
 void
-fingerprint_handle_cancle_enroll (GobredValue *params, GobredMethodCallBack *cb);
+fingerprint_handle_cancel_enroll (GobredValue *params, GobredMethodCallBack *cb);
 
 void
 save_print_data (struct fp_print_data *print_data, const gchar *name);

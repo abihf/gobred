@@ -143,6 +143,7 @@ static GobredMethodDefinitionV0 methods[] = {
   {"getDeviceInfo", .handler.simple = fingerprint_get_device_info},
   {"getDevices", .handler.simple = fingerprint_get_devices},
   {"enroll", .handler.simple = fingerprint_handle_enroll},
+  {"cancelEnroll", .handler.simple = fingerprint_handle_cancel_enroll},
   {"close", .handler.simple = fingerprint_handle_device_close},
   {NULL}
 };

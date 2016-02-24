@@ -13,23 +13,33 @@ typedef struct {
   GobredMethodCallBack *cb;
   gint stage;
   gint max_stage;
+  gboolean cancelled;
+  GobredMethodCallBack *cancel_cb;
 } EnrollData;
 
 
 static void
-enroll_data_free (EnrollData *edata)
+enroll_data_free (EnrollData *enroll_data)
 {
-  if (edata->cb)
-    gobred_method_callback_throw_error(&edata->cb, "unknown error");
-  gobred_value_unref (edata->params);
-  g_slice_free (EnrollData, edata);
+  if (enroll_data->cb) {
+    if (enroll_data->cancelled)
+      gobred_method_callback_throw_error(&enroll_data->cb, "Enroll cancelled");
+    else
+      gobred_method_callback_throw_error(&enroll_data->cb, "unknown error");
+  }
+  if (enroll_data->cancel_cb != NULL) {
+    gobred_method_callback_return (&enroll_data->cancel_cb, GOBRED_BOOLEAN_TRUE);
+  }
+  gobred_value_unref (enroll_data->params);
+  g_slice_free (EnrollData, enroll_data);
 }
 
 
 static void
 enroll_stopped_cb (struct fp_dev *dev, gpointer user_data)
 {
-  EnrollData *enroll_data = (EnrollData *)user_data;
+  gint index = GPOINTER_TO_INT(user_data);
+  EnrollData *enroll_data = (EnrollData *)devices[index].data;
   g_atomic_int_set (&devices[enroll_data->index].state, FINGERPRINT_STATE_READY);
   //devices[index].dev = NULL;
   g_print("enroll stopped closed\n");
@@ -120,8 +130,9 @@ enroll_stage_cb (struct fp_dev *dev,
     fp_img_free (img);
 
   if (complete) {
-    if (fp_async_enroll_stop(dev, enroll_stopped_cb, user_data) < 0)
-      enroll_stopped_cb(dev, user_data);
+    gpointer stop_data = GINT_TO_POINTER(enroll_data->index);
+    if (fp_async_enroll_stop(dev, enroll_stopped_cb, stop_data) < 0)
+      enroll_stopped_cb(dev, stop_data);
   }
 
 }
@@ -129,6 +140,7 @@ enroll_stage_cb (struct fp_dev *dev,
 static void
 dev_opened_for_enroll_cb (struct fp_dev *dev, int status, void *user_data)
 {
+  // TODO: handle failed
   EnrollData *enroll_data = (EnrollData *)user_data;
   devices[enroll_data->index].dev = dev;
   if (fp_async_enroll_start (dev, enroll_stage_cb, user_data) < 0) {
@@ -140,14 +152,20 @@ dev_opened_for_enroll_cb (struct fp_dev *dev, int status, void *user_data)
 void
 fingerprint_handle_enroll (GobredArray *params, GobredMethodCallBack *cb)
 {
-  EnrollData *enroll_data = g_slice_new(EnrollData);
   gint index = 0;
+  if (devices[index].state != FINGERPRINT_STATE_READY) {
+    gobred_method_callback_throw_error (&cb, "Device not ready");
+    return;
+  }
+
+  EnrollData *enroll_data = g_slice_new(EnrollData);
   enroll_data->params = gobred_value_ref (params);
   enroll_data->cb = cb;
   enroll_data->stage = 0;
   enroll_data->index = index;
 
   g_atomic_int_set (&devices[index].state, FINGERPRINT_STATE_ENROLLING);
+  devices[index].data = enroll_data;
 
   if (devices[index].dev) {
     if (fp_async_enroll_start (devices[index].dev, enroll_stage_cb, enroll_data) < 0) {
@@ -166,8 +184,28 @@ clean:
   enroll_data_free(enroll_data);
 }
 
-void
-fingerprint_handle_cancle_enroll (GobredArray *params, GobredMethodCallBack *cb)
+static void
+enroll_cancelled_cb (struct fp_dev *dev, gpointer user_data)
 {
+  GobredMethodCallBack *cb = (GobredMethodCallBack *)user_data;
+  //devices[index].dev = NULL;
+  g_print("enroll cancelled\n");
+  gobred_method_callback_return (&cb, GOBRED_BOOLEAN_TRUE);
+  //fp_async_dev_close(dev, device_closed_cb, NULL);
+}
 
+
+void
+fingerprint_handle_cancel_enroll (GobredArray *params, GobredMethodCallBack *cb)
+{
+  int index = 0;
+  // TODO: what if device is still being opened?
+  if (devices[index].dev != NULL && devices[index].state == FINGERPRINT_STATE_ENROLLING) {
+    EnrollData *enroll_data = (EnrollData *)devices[index].data;
+    enroll_data->cancelled = TRUE;
+    enroll_data->cancel_cb = cb;
+    fp_async_enroll_stop (devices[index].dev, enroll_stopped_cb, GINT_TO_POINTER(index));
+  } else {
+    gobred_method_callback_return (&cb, GOBRED_BOOLEAN_TRUE);
+  }
 }
