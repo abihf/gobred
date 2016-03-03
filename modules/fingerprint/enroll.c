@@ -9,8 +9,12 @@ extern Device *devices;
 
 typedef struct {
   gint index;
-  GobredArray *params;
+  gboolean return_image;
+  gchar *save_name;
+
+  //GobredArray *params;
   GobredMethodCallBack *cb;
+
   gint stage;
   gint max_stage;
   gboolean cancelled;
@@ -30,7 +34,7 @@ enroll_data_free (EnrollData *enroll_data)
   if (enroll_data->cancel_cb != NULL) {
     gobred_method_callback_return (&enroll_data->cancel_cb, GOBRED_BOOLEAN_TRUE);
   }
-  gobred_value_unref (enroll_data->params);
+  //gobred_value_unref (enroll_data->params);
   g_slice_free (EnrollData, enroll_data);
 }
 
@@ -108,15 +112,14 @@ enroll_stage_cb (struct fp_dev *dev,
   //  gobred_method_callback_throw_error (mcb, "enroll failed");
   //}
   else {
-    GobredValue *options = gobred_array_get_dict(enroll_data->params, 2);
     GobredDict *result = gobred_dict_new("status", GOBRED_VALUE_TYPE_STRING, status, NULL);
-    if (img != NULL && gobred_dict_get_boolean (options, "return_image", FALSE)) {
+    if (img != NULL && enroll_data->return_image) {
       gchar *data = img_to_base64 (img);
       gobred_dict_set (result, "image", gobred_value_new_take_string (data));
     }
     if (success) {
-      if (gobred_dict_get_boolean(options, "save", TRUE)) {
-        save_print_data (print_data, gobred_array_get_string (enroll_data->params, 1));
+      if (enroll_data->save_name) {
+        save_print_data (print_data, enroll_data->save_name);
       }
       // save data
     }
@@ -152,17 +155,44 @@ dev_opened_for_enroll_cb (struct fp_dev *dev, int status, void *user_data)
 void
 fingerprint_handle_enroll (GobredArray *params, GobredMethodCallBack *cb)
 {
+  int param_len = gobred_array_get_length (params);
+  if (param_len < 1) {
+    gobred_method_callback_throw_error (&cb, "Invalid number of params");
+    return;
+  }
+  GobredValue *param0 = gobred_array_get (params, 0);
+  const gchar *name = NULL;
+  GobredDict *options = NULL;
+  if (gobred_value_is_dict (param0)) {
+    options = param0;
+  } else {
+    name = gobred_value_get_string(param0);
+    if (param_len >= 2)
+      options = gobred_array_get_dict (params, 1);
+  }
+
   gint index = 0;
+  gboolean return_image = FALSE;
+  if (options) {
+    index = gobred_dict_get_number (options, "device", 0.0);
+    return_image = gobred_dict_get_boolean (options, "return_image", FALSE);
+  }
+
   if (devices[index].state != FINGERPRINT_STATE_READY) {
     gobred_method_callback_throw_error (&cb, "Device not ready");
     return;
   }
 
   EnrollData *enroll_data = g_slice_new(EnrollData);
-  enroll_data->params = gobred_value_ref (params);
+  //enroll_data->params = gobred_value_ref (params);
+  enroll_data->save_name = name ? g_strdup(name) : NULL;
+  enroll_data->return_image = return_image;
   enroll_data->cb = cb;
   enroll_data->stage = 0;
   enroll_data->index = index;
+  if (options) {
+
+  }
 
   g_atomic_int_set (&devices[index].state, FINGERPRINT_STATE_ENROLLING);
   devices[index].data = enroll_data;
@@ -182,16 +212,6 @@ fingerprint_handle_enroll (GobredArray *params, GobredMethodCallBack *cb)
 
 clean:
   enroll_data_free(enroll_data);
-}
-
-static void
-enroll_cancelled_cb (struct fp_dev *dev, gpointer user_data)
-{
-  GobredMethodCallBack *cb = (GobredMethodCallBack *)user_data;
-  //devices[index].dev = NULL;
-  g_print("enroll cancelled\n");
-  gobred_method_callback_return (&cb, GOBRED_BOOLEAN_TRUE);
-  //fp_async_dev_close(dev, device_closed_cb, NULL);
 }
 
 
