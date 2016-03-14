@@ -28,4 +28,16 @@ void
 fingerprint_handle_cancel_enroll (GobredValue *params, GobredMethodCallBack *cb);
 
 void
-save_print_data (struct fp_print_data *print_data, const gchar *name);
+fingerprint_handle_verify (GobredValue *params, GobredMethodCallBack *cb);
+
+void
+fingerprint_handle_cancel_verify (GobredValue *params, GobredMethodCallBack *cb);
+
+
+gint
+save_print_data (struct fp_print_data  *print_data,
+                 const gchar           *name,
+                 GError               **error);
+
+struct fp_print_data *
+load_print_data (const gchar *name, GError **error);

@@ -6,6 +6,7 @@ GobredFingerPrint_la_SOURCES = \
 	fingerprint.c \
 	poll.c \
 	enroll.c \
+	verify.c \
 	util.c
 
 # module_DATA = hello.module

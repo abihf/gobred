@@ -52,7 +52,6 @@ enroll_stopped_cb (struct fp_dev *dev, gpointer user_data)
 }
 
 
-
 static void
 enroll_stage_cb (struct fp_dev *dev,
                  int result,
@@ -108,9 +107,6 @@ enroll_stage_cb (struct fp_dev *dev,
     g_print("ini jangan di panggil\n");
     gobred_method_callback_throw_error (mcb, "enroll error: %s", error);
   }
-  //else if (enroll_data->stage >= enroll_data->max_stage) {
-  //  gobred_method_callback_throw_error (mcb, "enroll failed");
-  //}
   else {
     GobredDict *result = gobred_dict_new("status", GOBRED_VALUE_TYPE_STRING, status, NULL);
     if (img != NULL && enroll_data->return_image) {
@@ -119,7 +115,8 @@ enroll_stage_cb (struct fp_dev *dev,
     }
     if (success) {
       if (enroll_data->save_name) {
-        save_print_data (print_data, enroll_data->save_name);
+        GError *error = NULL;
+        save_print_data (print_data, enroll_data->save_name, &error);
       }
       // save data
     }
