@@ -139,6 +139,29 @@ fingerprint_handle_device_close (GobredValue *params, GobredMethodCallBack *cb)
   gobred_method_callback_return (&cb, GOBRED_BOOLEAN_TRUE);
 }
 
+gchar *
+get_print_data_path (const gchar *name);
+
+static void
+fingerprint_handle_load_data (GobredValue *params, GobredMethodCallBack *cb)
+{
+  const gchar *name = gobred_array_get_string (params, 0);
+  gchar *file_path = get_print_data_path(name);
+  GError *error = NULL;
+  gchar *buffer = NULL;
+  gsize length = 0;
+  if (g_file_get_contents (file_path, &buffer, &length, &error)) {
+    gchar *b64 = g_base64_encode (buffer, length);
+    g_free (buffer);
+
+    gobred_method_callback_return (&cb, gobred_value_new_take_string (b64));
+    // g_free (b64);
+  } else {
+    gobred_method_callback_throw_error (&cb, "load data error: %d %s", error->code, error->message);
+  }
+  g_free (file_path);
+}
+
 static GobredMethodDefinitionV0 methods[] = {
   {"getDeviceInfo", .handler.simple = fingerprint_get_device_info},
   {"getDevices", .handler.simple = fingerprint_get_devices},
@@ -147,6 +170,7 @@ static GobredMethodDefinitionV0 methods[] = {
   {"verify", .handler.simple = fingerprint_handle_verify},
   {"cancelVerify", .handler.simple = fingerprint_handle_cancel_verify},
   {"close", .handler.simple = fingerprint_handle_device_close},
+  {"loadData", .handler.simple = fingerprint_handle_load_data},
   {NULL}
 };
 
