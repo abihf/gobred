@@ -17,8 +17,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-GOBRED_INTERNAL const GobredModuleDefinition **
-gobred_module_get_all ();
+#include <gmodule.h>
+
+typedef struct  {
+  const GobredModuleDefinitionBase *definition;
+  GModule *gmodule;
+} GobredModule;
+
+GOBRED_INTERNAL JSObjectRef
+gobred_module_create_js_object (JSContextRef ctx, const GobredModule *module);
+
+GOBRED_INTERNAL const GobredModuleDefinitionBase **
+gobred_module_get_all_definitions ();
+
+GOBRED_INTERNAL const GList *
+gobred_module_get_all();
 
 GOBRED_INTERNAL void
 gobred_module_init_all ();
@@ -31,7 +44,7 @@ gobred_module_free_all ();
 
 typedef struct {
   guint32 magic;
-  const GobredModuleDefinition *definition;
+  const GobredModuleDefinitionBase *definition;
   gboolean active;
   gboolean ref_count;
 } GobredModuleData;

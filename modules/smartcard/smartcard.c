@@ -162,7 +162,7 @@ _status_loop_thread (gpointer data)
 					memcpy(readers[i].atr, reader_states[i].rgbAtr, readers[i].atr_len);
           gchar *atr_hex = g_new(gchar, readers[i].atr_len * 2 + 1);
           bytes_to_hex (atr_hex, readers[i].atr, readers[i].atr_len);
-          GobredValue *param = gobred_value_new_dict(
+          GobredDict *param = gobred_dict_new (
              "reader", GOBRED_VALUE_TYPE_NUMBER, (double)(i+1),
              "atr", GOBRED_VALUE_TYPE_STRING, atr_hex,
              0);
@@ -176,7 +176,7 @@ _status_loop_thread (gpointer data)
 						readers[i].connected = FALSE;
 					}
 		      readers[i].card_present = FALSE;
-          GobredValue *param = gobred_value_new_dict(
+          GobredValue *param = gobred_dict_new (
              "reader", GOBRED_VALUE_TYPE_NUMBER, (double)(i+1),
              0);
           g_info("card removed %d", i);
@@ -198,9 +198,9 @@ _status_loop_thread (gpointer data)
 static void
 _get_readers (GobredValue *params, GobredMethodCallBack *cb)
 {
-  GobredValue *result = gobred_value_new_array (num_reader, 0);
+  GobredValue *result = gobred_array_new (num_reader, 0);
   for (int i=0; i<num_reader; i++) {
-    gobred_value_add_item (result, gobred_value_new_string(readers[i].name));
+    gobred_array_add (result, gobred_value_new_string(readers[i].name));
   }
   gobred_method_callback_return (&cb, result);
 }
@@ -208,11 +208,11 @@ _get_readers (GobredValue *params, GobredMethodCallBack *cb)
 static void
 _get_reader (GobredValue *params, GobredMethodCallBack *cb)
 {
-  gint index = (gint)gobred_value_get_number_item (params, 0) - 1;
+  gint index = (gint)gobred_array_get_number (params, 0) - 1;
   if (index < 0 || index >= num_reader) {
     gobred_method_callback_throw_error (&cb, "invalid reader index %d", index + 1);
   } else {
-    GobredValue *result = gobred_value_new_dict (
+    GobredValue *result = gobred_dict_new (
       "name", GOBRED_VALUE_TYPE_STRING, readers[index].name,
       "card", GOBRED_VALUE_TYPE_STRING, readers[index].card_present ? "present" : "none",
       NULL
@@ -287,16 +287,16 @@ _send_single_apdu (gint index, const gchar *apdu, gchar **response, gboolean ret
 static void
 _send_apdu (GobredValue *params, GobredMethodCallBack *cb)
 {
-  gint argc = gobred_value_get_length (params);
+  gint argc = gobred_array_get_length (params);
   if (argc < 2) {
     gobred_method_callback_throw_error (&cb, "invalid number of arguments");
     return;
   }
-  if (gobred_value_get_item_type (params, 0) != GOBRED_VALUE_TYPE_NUMBER) {
+  if (gobred_array_get_item_type (params, 0) != GOBRED_VALUE_TYPE_NUMBER) {
     gobred_method_callback_throw_error (&cb, "invalid argument type: args[0] = number");
     return;
   }
-  gint reader_index = (gint)gobred_value_get_number_item (params, 0);
+  gint reader_index = (gint)gobred_array_get_number (params, 0);
   if (reader_index < 1 || reader_index > num_reader) {
     gobred_method_callback_throw_error (&cb, "invalid reader index %d", reader_index);
     return;
@@ -308,18 +308,18 @@ _send_apdu (GobredValue *params, GobredMethodCallBack *cb)
   }
   gboolean use_ascii = FALSE;
   if (argc >= 3)
-    use_ascii = gobred_value_get_boolean_item (params, 2);
-  switch (gobred_value_get_item_type (params, 1)) {
+    use_ascii = gobred_array_get_boolean (params, 2);
+  switch (gobred_array_get_item_type (params, 1)) {
   case GOBRED_VALUE_TYPE_STRING:
       {
-        const gchar *apdu_string = gobred_value_get_string_item(params, 1);
+        const gchar *apdu_string = gobred_array_get_string(params, 1);
         gchar *response;
         gint sw = _send_single_apdu (reader_index, apdu_string, &response, use_ascii);
-        GobredValue *result = gobred_value_new_array (2,
+        GobredValue *result = gobred_array_new (2,
                                                       GOBRED_VALUE_TYPE_NUMBER, (double)sw,
                                                       NULL);
         if (response)
-          gobred_value_add_item(result, gobred_value_new_take_string (response));
+          gobred_array_add(result, gobred_value_new_take_string (response));
         gobred_method_callback_return (&cb, result);
       }
     break;
@@ -330,29 +330,30 @@ _send_apdu (GobredValue *params, GobredMethodCallBack *cb)
   }
 }
 
-static GobredMethodDefinition methods[] = {
+static GobredMethodDefinitionV0 methods[] = {
   {.name = "send", .handler.simple = _send_apdu, .threaded = TRUE},
   {.name = "getReaders", .handler.simple = _get_readers},
   {.name = "getReader", .handler.simple = _get_reader},
   {NULL}
 };
 
-static GobredEventDefinition events[] = {
+static GobredEventDefinitionV0 events[] = {
   {"card-present"},
   {"card-removed"},
   {NULL}
 };
 
-static GobredModuleDefinition definition = {
-  .name = "smartcard",
+static GobredModuleDefinitionV0 definition = {
+  .base.version = 0,
+  .base.name = "smartcard",
   .methods = methods,
   .events = events,
   .init = _init,
   .free = _free
 };
 
-GobredModuleDefinition *
+GobredModuleDefinitionBase *
 gobred_module_register ()
 {
-  return &definition;
+  return &definition.base;
 }

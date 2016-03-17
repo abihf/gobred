@@ -20,7 +20,7 @@
 
 typedef struct {
   gchar *name;
-} GobredEventDefinition;
+} GobredEventDefinitionV0;
 
 
 void

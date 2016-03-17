@@ -57,7 +57,7 @@ _event_tree_free_value (GList *ptr)
 }
 
 void
-gobred_event_prepare (const GobredModuleDefinition *modules[])
+gobred_event_prepare (const GobredModuleDefinitionBase *modules[])
 {
   g_print("event prepare\n");
   events = g_tree_new_full (_event_tree_compare,
@@ -65,16 +65,23 @@ gobred_event_prepare (const GobredModuleDefinition *modules[])
                             g_free,
                             (GDestroyNotify)_event_tree_free_value);
 
-  const GobredModuleDefinition *module;
+  const GobredModuleDefinitionBase *module;
   gchar *event_name;
 
   for (int i=0; modules[i]; i++) {
     module = modules[i];
-    GobredEventDefinition *e;
-    for (e = module->events; e && e->name; e++) {
-      event_name = g_strdup_printf ("%s.%s", module->name, e->name);
-      g_tree_replace (events, event_name, g_list_alloc());
+    switch (modules[i]->version) {
+    case GOBRED_MODULE_DEFINITION_VERSION_0:
+        {
+          GobredEventDefinitionV0 *e = ((GobredModuleDefinitionV0*)modules[i])->events;
+          for (; e && e->name; e++) {
+            event_name = g_strdup_printf ("%s.%s", module->name, e->name);
+            g_tree_replace (events, event_name, g_list_alloc());
+          }
+        }
+        break;
     }
+
   }
 }
 

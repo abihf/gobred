@@ -34,10 +34,10 @@ typedef enum
 } GobredMethodType;
 
 typedef struct _GobredMethodCallBack GobredMethodCallBack;
-typedef struct _GobredMethodDefinition GobredMethodDefinition;
+typedef struct _GobredMethodDefinitionV0 GobredMethodDefinitionV0;
 
 typedef void
-(*GobredMethodSimpleHandler) (GobredValue *params, GobredMethodCallBack *cb);
+(*GobredMethodSimpleHandler) (GobredArray *params, GobredMethodCallBack *cb);
 
 typedef JSValueRef
 (*GobredMethodNativeHander) (JSContextRef ctx,
@@ -56,7 +56,7 @@ void
 gobred_method_callback_return (GobredMethodCallBack **mcb, GobredValue *value);
 
 
-struct _GobredMethodDefinition
+struct _GobredMethodDefinitionV0
 {
   gchar *name;
   GobredMethodType type;

@@ -25,8 +25,6 @@
 #include "gobred-js-utils.h"
 
 static JSClassRef _gobred_class = NULL;
-static JSClassRef _module_class = NULL;
-static JSClassRef _method_class = NULL;
 
 static JSValueRef
 get_version_cb (JSContextRef ctx,
@@ -36,7 +34,6 @@ get_version_cb (JSContextRef ctx,
 {
   return js_value_from_string (ctx, PACKAGE_STRING);
 }
-
 
 
 static JSStaticValue _gobred_static_values[] = {
@@ -49,45 +46,10 @@ static JSStaticValue _gobred_static_values[] = {
 };
 
 
-
 static JSClassDefinition _gobred_class_definition = {
   .className = "Gobred",
   .staticValues = _gobred_static_values
 };
-
-static void
-_module_finalize (JSObjectRef object)
-{
-  GobredModuleData *data = gobred_module_data_from_js (object);
-  g_print ("finalizing %d\n", data!=NULL);
-  if (data) {
-    data->active = false;
-    gobred_module_data_unref (data);
-  }
-}
-
-static JSStaticFunction _moudule_static_functions[] = {
-  {
-    .name = "addEventListener",
-    .callAsFunction = gobred_event_handle_add_listener,
-    .attributes = kJSPropertyAttributeReadOnly
-  },
-  {
-    .name = "removeEventListener",
-    .callAsFunction = gobred_event_handle_add_listener,
-    .attributes = kJSPropertyAttributeReadOnly
-  },
-  { NULL }
-};
-
-static JSClassDefinition _module_class_definition = {
-  .className = "GobredModule",
-  .finalize = _module_finalize,
-  .staticFunctions = _moudule_static_functions
-};
-
-static JSClassDefinition _method_class_definition =
-  { .className = "GobredMethod", .callAsFunction = gobred_method_handle_call };
 
 static JSObjectRef
 create_gobred_object (JSContextRef ctx)
@@ -99,30 +61,15 @@ create_gobred_object (JSContextRef ctx)
   JSObjectRef object = JSObjectMake (ctx, _gobred_class, NULL);
 
   // register modules & methods
-  const GobredModuleDefinition *module;
-  const GobredModuleDefinition **modules = gobred_module_get_all ();
-  for (int i = 0; modules[i]; i++) {
-    module = modules[i];
-    JSStringRef module_name = JSStringCreateWithUTF8CString (module->name);
-    GobredModuleData *data = gobred_module_data_new ();
-    data->active = true;
-    data->definition = module;
-    JSObjectRef obj_module = JSObjectMake (ctx, _module_class, data);
-
-    GobredMethodDefinition *method;
-    for (method = module->methods; method->name; method++) {
-      JSStringRef method_name = JSStringCreateWithUTF8CString (method->name);
-      JSObjectRef fun = JSObjectMake (ctx, _method_class, method);
-      JSObjectSetProperty (ctx, obj_module, method_name, fun, 0, NULL);
-      JSStringRelease (method_name);
-      JSValueUnprotect (ctx, fun);
-    }
-
-    JSObjectSetProperty (ctx, object, module_name, obj_module, 0, NULL);
-    JSStringRelease (module_name);
-    JSValueUnprotect (ctx, obj_module);
+  const GList *modules = gobred_module_get_all();
+  for (GList *item = modules->next; item; item = item->next) {
+    GobredModule *module = (GobredModule *)item->data;
+    JSObjectRef module_js = gobred_module_create_js_object (ctx, module);
+    JSStringRef name = JSStringCreateWithUTF8CString(module->definition->name);
+    JSObjectSetProperty (ctx, object, name, module_js, 0, NULL);
+    JSValueUnprotect (ctx, module_js);
+    JSStringRelease (name);
   }
-
   return object;
 }
 
@@ -145,10 +92,7 @@ void
 gobred_bridge_init ()
 {
   _gobred_class = JSClassCreate (&_gobred_class_definition);
-  _module_class = JSClassCreate (&_module_class_definition);
-  _method_class = JSClassCreate (&_method_class_definition);
   gobred_module_init_all ();
-  gobred_event_prepare (gobred_module_get_all());
 }
 
 void
@@ -158,7 +102,5 @@ gobred_bridge_end ()
   gobred_module_free_all ();
   gobred_event_clean();
   JSClassRelease (_gobred_class);
-  JSClassRelease (_module_class);
-  JSClassRelease (_method_class);
 }
 
