@@ -2,16 +2,17 @@
 #include <glib.h>
 #include <libgobred/gobred-bridge.h>
 
-static void 
+
+#include <dlfcn.h>
+
+static void
 didClearWindowObjectForFrame (WKBundlePageRef page, 
                               WKBundleFrameRef frame, 
                               WKBundleScriptWorldRef scriptWorld, 
                               const void *data) 
 {
-	//fprintf(stderr, "didClearWindowObjectForFrame\n");
-	JSGlobalContextRef context = WKBundleFrameGetJavaScriptContextForWorld(frame, scriptWorld);
-	gobred_bridge_setup (context);
-//	injectJSExtensions(context);
+    JSGlobalContextRef context = WKBundleFrameGetJavaScriptContextForWorld(frame, scriptWorld);
+    gobred_bridge_setup (context);
 }
 
 static WKBundlePageLoaderClientV6 s_pageLoaderClient = {
@@ -56,7 +57,7 @@ static WKBundlePageLoaderClientV6 s_pageLoaderClient = {
 static void 
 didCreatePage (WKBundleRef bundle, WKBundlePageRef page, const void *data)
 {
-	WKBundlePageSetPageLoaderClient(page, &s_pageLoaderClient.base);
+    WKBundlePageSetPageLoaderClient(page, &s_pageLoaderClient.base);
 }
 
 static WKBundleClientV1 s_bundleClient = {
@@ -71,7 +72,8 @@ static WKBundleClientV1 s_bundleClient = {
 
 void WKBundleInitialize(WKBundleRef bundle, WKTypeRef type)
 {
-	gobred_bridge_init ();
+    gobred_bridge_init ();
+    dlopen ("libgobred-wpe.so", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD);
     //fprintf(stderr, "[WPEInjectedBundle] Initialized.\n");
     WKBundleSetClient(bundle, &s_bundleClient.base);
 }
