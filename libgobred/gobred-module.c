@@ -111,7 +111,11 @@ gobred_module_load_all ()
 
     switch (module->definition->version) {
     case GOBRED_MODULE_DEFINITION_VERSION_0:
-      ((GobredModuleDefinitionV0*)module->definition)->init();
+      {
+        GobredModuleDefinitionV0 *definition0 = 
+          (GobredModuleDefinitionV0*)module->definition;
+        if (definition0->init) definition0->init();
+      }
       break;
 
     default:
